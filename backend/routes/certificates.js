@@ -8,14 +8,14 @@ const { sendCertificateIssuedEmail } = require('../utils/emailService');
 
 const router = express.Router();
 
-// ===== GENERATE CERTIFICATE (ADMIN) =====
+//GENERATE CERTIFICATE (ADMIN
 router.post('/generate/:activityId', async (req, res) => {
   try {
     const activity = await Activity.findById(req.params.activityId).populate('student');
 
-    if (!activity) return res.status(404).json({ error: '❌ Activity not found' });
+    if (!activity) return res.status(404).json({ error: 'Activity not found' });
 
-    // ===== GENERATE BLOCKCHAIN HASH =====
+    //  BLOCKCHAIN HASH 
     const hashData = JSON.stringify({
       studentId: activity.student._id,
       activityId: activity._id,
@@ -26,18 +26,18 @@ router.post('/generate/:activityId', async (req, res) => {
 
     const hash = crypto.createHash('sha256').update(hashData).digest('hex');
 
-    // ===== GET PREVIOUS CERTIFICATE (BLOCKCHAIN LINKING) =====
+    // GET PREVIOUS CERTIFICATE (BLOCKCHAIN LINKING) 
     const previousCert = await Certificate.findOne({ student: activity.student._id })
       .sort({ createdAt: -1 });
 
     const blockNumber = previousCert ? previousCert.blockchainData.blockNumber + 1 : 1;
     const previousHash = previousCert ? previousCert.hash : '0';
 
-    // ===== GENERATE QR CODE =====
+    // GENERATE QR CODE 
     const verificationUrl = `${process.env.FRONTEND_URL}/verify/${hash}`;
     const qrCode = await QRCode.toDataURL(verificationUrl);
 
-    // ===== CREATE CERTIFICATE =====
+    // CREATE CERTIFICATE
     const certificate = new Certificate({
       certificateId: `CERT-${Date.now()}`,
       activity: activity._id,
@@ -57,7 +57,7 @@ router.post('/generate/:activityId', async (req, res) => {
 
     await certificate.save();
 
-    // ===== UPDATE ACTIVITY =====
+    // UPDATE ACTIVITY 
     activity.status = 'certified';
     activity.certificateHash = hash;
     activity.qrCodeUrl = qrCode;
@@ -66,12 +66,12 @@ router.post('/generate/:activityId', async (req, res) => {
 
     await activity.save();
 
-    // ===== SEND EMAIL =====
+    // SEND EMAIL 
     await sendCertificateIssuedEmail(activity.student, certificate.certificateId);
 
     res.json({
       success: true,
-      message: '✅ Certificate generated!',
+      message: ' Certificate generated!',
       certificate: {
         id: certificate._id,
         certificateId: certificate.certificateId,
@@ -86,8 +86,7 @@ router.post('/generate/:activityId', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-// ===== GET STUDENT CERTIFICATES =====
+//GET STUDENT CERTIFICATES 
 router.get('/my-certificates', async (req, res) => {
   try {
     const certificates = await Certificate.find({ student: req.user.userId })

@@ -5,13 +5,12 @@ const jwt = require('jsonwebtoken');
 
 const router = express.Router();
 
-// ===== REGISTER =====
 router.post('/register', async (req, res) => {
     try {
         const { name, email, password, role, rollNumber, department, year } = req.body;
 
         let user = await User.findOne({ email });
-        if (user) return res.status(400).json({ error: '❌ User already exists' });
+        if (user) return res.status(400).json({ error: ' User already exists' });
 
         user = new User({
             name,
@@ -25,7 +24,7 @@ router.post('/register', async (req, res) => {
 
         await user.save();
 
-        // Create StudentSkills profile for students
+
         if (role === 'student') {
             const skills = new StudentSkills({ student: user._id });
             await skills.save();
@@ -53,16 +52,16 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// ===== LOGIN =====
+
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
         const user = await User.findOne({ email }).select('+password');
-        if (!user) return res.status(400).json({ error: '❌ User not found' });
+        if (!user) return res.status(400).json({ error: 'User not found' });
 
         const isMatch = await user.comparePassword(password);
-        if (!isMatch) return res.status(400).json({ error: '❌ Invalid password' });
+        if (!isMatch) return res.status(400).json({ error: 'Invalid password' });
 
         const token = jwt.sign(
             { userId: user._id, role: user.role },

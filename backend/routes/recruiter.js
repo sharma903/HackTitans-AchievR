@@ -4,10 +4,10 @@ const StudentSkills = require('../models/StudentSkills');
 
 const router = express.Router();
 
-// ===== SEARCH BY SKILLS =====
+//  SEARCH BY SKILLS
 router.post('/search', async (req, res) => {
   try {
-    const { skills, skillType } = req.body; // 'technical' | 'soft' | 'tools' | 'all'
+    const { skills, skillType } = req.body; 
 
     let query = {};
 
@@ -50,7 +50,6 @@ router.post('/search', async (req, res) => {
       activity.selectedTools.forEach(t => studentActivityMap[studentId].allSkills.tools.add(t));
     });
 
-    // Convert to array and format
     const results = Object.values(studentActivityMap).map(item => ({
       student: {
         id: item.student._id,

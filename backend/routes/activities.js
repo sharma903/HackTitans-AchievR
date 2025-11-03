@@ -36,7 +36,7 @@ router.post('/submit', upload.single('document'), async (req, res) => {
     const tools = JSON.parse(selectedTools || '[]');
 
     if (techSkills.length === 0 && softSkills.length === 0 && tools.length === 0) {
-      return res.status(400).json({ error: '❌ Please select at least one skill' });
+      return res.status(400).json({ error: ' Please select at least one skill' });
     }
 
     const activity = new Activity({
@@ -136,7 +136,7 @@ router.post('/submit', upload.single('document'), async (req, res) => {
 
     res.json({
       success: true,
-      message: '✅ Activity submitted successfully!',
+      message: 'Activity submitted successfully!',
       activity: {
         id: activity._id,
         title,
@@ -168,7 +168,7 @@ router.get('/my-activities', async (req, res) => {
   }
 });
 
-// ===== FACULTY: GET PENDING ACTIVITIES =====
+
 router.get('/faculty/pending', async (req, res) => {
   try {
     const activities = await Activity.find({ status: 'pending' })
@@ -197,7 +197,7 @@ router.put('/:id/approve', async (req, res) => {
       { new: true }
     ).populate('student');
 
-    // Send email notification
+   
     await sendActivityApprovedEmail(activity.student, activity);
 
     res.json({ success: true, message: '✅ Activity approved!', activity });
@@ -206,7 +206,7 @@ router.put('/:id/approve', async (req, res) => {
   }
 });
 
-// ===== FACULTY: REJECT ACTIVITY =====
+
 router.put('/:id/reject', async (req, res) => {
   try {
     const { reason } = req.body;
@@ -227,7 +227,7 @@ router.put('/:id/reject', async (req, res) => {
   }
 });
 
-// ===== ADMIN: GET APPROVED ACTIVITIES (FOR CERTIFICATION) =====
+
 router.get('/admin/approved', async (req, res) => {
   try {
     const activities = await Activity.find({ status: 'approved' })

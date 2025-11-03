@@ -4,7 +4,7 @@ const crypto = require('crypto');
 
 const router = express.Router();
 
-// ===== PUBLIC QR VERIFICATION (NO LOGIN REQUIRED) =====
+//  PUBLIC QR VERIFICATION (NO LOGIN REQUIRED) 
 router.get('/:hash', async (req, res) => {
   try {
     const certificate = await Certificate.findOne({ hash: req.params.hash })
@@ -14,12 +14,12 @@ router.get('/:hash', async (req, res) => {
     if (!certificate) {
       return res.json({
         verified: false,
-        message: '❌ Certificate not found',
+        message: ' Certificate not found',
         status: 'invalid'
       });
     }
 
-    // ===== VERIFY HASH INTEGRITY =====
+    //  VERIFY HASH INTEGRITY 
     const originalData = JSON.stringify({
       studentId: certificate.student._id,
       activityId: certificate.activity._id,
@@ -51,7 +51,7 @@ router.get('/:hash', async (req, res) => {
           tools: certificate.activity.selectedTools
         }
       },
-      message: isTampered ? '⚠️ Certificate may have been modified' : '✅ Certificate verified'
+      message: isTampered ? 'Certificate may have been modified' : 'Certificate verified'
     });
 
     // Increment verification count
