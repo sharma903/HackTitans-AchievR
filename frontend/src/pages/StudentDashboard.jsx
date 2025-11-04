@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Plus, Download, TrendingUp, Award, Clock, AlertCircle, Zap, GraduationCap, Share2, X, Copy, ExternalLink, Code, User, Mail, BookOpen, QrCode, CheckCircle } from 'lucide-react';
+import { Plus, Download, TrendingUp, Award, Clock, AlertCircle, Zap, GraduationCap, Share2, X, Copy, ExternalLink, Code, User, Mail, BookOpen, QrCode, CheckCircle, FileText, Loader } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function StudentDashboard({ user }) {
@@ -18,6 +18,8 @@ export default function StudentDashboard({ user }) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [selectedCertificate, setSelectedCertificate] = useState(null);
+  const [certificateDetailsOpen, setCertificateDetailsOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -56,7 +58,6 @@ export default function StudentDashboard({ user }) {
   const handleSharePortfolio = async () => {
     setPreviewLoading(true);
     try {
-      // Fetch the recruiter view data
       const response = await axios.get(
         `http://localhost:5000/api/recruiter/my-profile`,
         {
@@ -105,6 +106,11 @@ export default function StudentDashboard({ user }) {
     } else {
       handleCopyLink();
     }
+  };
+
+  const handleViewCertificateDetails = (certificate) => {
+    setSelectedCertificate(certificate);
+    setCertificateDetailsOpen(true);
   };
 
   const chartData = [
@@ -251,7 +257,9 @@ export default function StudentDashboard({ user }) {
                 <h3 className="text-2xl font-bold text-gray-900">Activities by Category</h3>
                 <p className="text-sm text-gray-600 font-medium mt-1">Distribution across different achievement types</p>
               </div>
-              
+              <div className="bg-orange-100 p-3 rounded-xl">
+                <TrendingUp size={24} className="text-orange-600" />
+              </div>
             </div>
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={320}>
@@ -573,32 +581,79 @@ export default function StudentDashboard({ user }) {
                   </div>
                 )}
 
-                {/* Achievements Summary */}
+                {/* Certificates Issued Section - NEW FEATURE */}
                 {previewData.activities.length > 0 && (
                   <div className="mb-8">
                     <h4 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                       <Award size={20} className="text-orange-600" />
-                      Verified Achievements ({previewData.activities.length})
+                      Certificates Issued ({previewData.activities.length})
                     </h4>
 
-                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {previewData.activities.map((activity, index) => (
-                        <div key={activity.id} className="bg-white border-2 border-gray-200 rounded-lg p-4">
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <p className="text-sm font-semibold text-gray-900">{index + 1}. {activity.title}</p>
-                              <p className="text-xs text-gray-600 font-light mt-1">{activity.description?.substring(0, 60)}...</p>
+                        <div 
+                          key={activity.id}
+                          onClick={() => handleViewCertificateDetails(activity)}
+                          className="bg-white border-2 border-gray-200 rounded-xl p-5 hover:border-orange-400 hover:shadow-lg cursor-pointer transition duration-300 group"
+                        >
+                          {/* Certificate Card Header */}
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <FileText size={16} className="text-orange-600" />
+                                <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-full">
+                                  Certificate #{index + 1}
+                                </span>
+                              </div>
+                              <h5 className="text-sm font-semibold text-gray-900 group-hover:text-orange-600 transition line-clamp-2">
+                                {activity.title}
+                              </h5>
                             </div>
-                            <CheckCircle size={16} className="text-green-600 flex-shrink-0 mt-1" />
+                            <CheckCircle size={18} className="text-green-600 flex-shrink-0" />
                           </div>
-                          <div className="flex flex-wrap gap-2">
-                            <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-medium">
-                              {activity.category}
-                            </span>
-                            <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full font-medium">
-                              {activity.achievementLevel || 'College'}
-                            </span>
+
+                          {/* Certificate Details */}
+                          <div className="space-y-2 mb-3 text-xs">
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-600 font-light">Category:</span>
+                              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium">
+                                {activity.category}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-600 font-light">Level:</span>
+                              <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded font-medium">
+                                {activity.achievementLevel}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-600 font-light">Certified:</span>
+                              <span className="text-green-600 font-semibold">
+                                {new Date(activity.certifiedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
+                              </span>
+                            </div>
                           </div>
+
+                          {/* Skills Preview */}
+                          {(activity.technicalSkills?.length > 0 || activity.softSkills?.length > 0) && (
+                            <div className="flex flex-wrap gap-1 mb-3">
+                              {activity.technicalSkills?.slice(0, 3).map(skill => (
+                                <span key={skill} className="bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded-full">
+                                  {skill}
+                                </span>
+                              ))}
+                              {(activity.technicalSkills?.length > 3 || activity.softSkills?.length > 0) && (
+                                <span className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full">
+                                  +{(activity.technicalSkills?.length || 0) + (activity.softSkills?.length || 0) - 3}
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* View Details Button */}
+                          <button className="w-full text-sm font-semibold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 py-2 rounded-lg transition duration-300">
+                            View Certificate Details →
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -648,6 +703,132 @@ export default function StudentDashboard({ user }) {
                     Close
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Certificate Details Modal */}
+      {certificateDetailsOpen && selectedCertificate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
+          <div className="min-h-screen flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full">
+              
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-orange-50 to-white border-b-2 border-gray-200 p-6 flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-gray-900">Certificate Details</h2>
+                <button
+                  onClick={() => setCertificateDetailsOpen(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition duration-300"
+                >
+                  <X size={24} className="text-gray-600" />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-8 space-y-6">
+                {/* Achievement Title */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">Achievement Title</p>
+                  <h3 className="text-3xl font-bold text-gray-900">{selectedCertificate.title}</h3>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">Description</p>
+                  <p className="text-gray-700 font-light leading-relaxed">{selectedCertificate.description}</p>
+                </div>
+
+                {/* Details Grid */}
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-4">
+                    <p className="text-xs font-semibold text-gray-600 uppercase mb-2">Category</p>
+                    <p className="text-lg text-gray-900 font-medium">{selectedCertificate.category}</p>
+                  </div>
+
+                  <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-4">
+                    <p className="text-xs font-semibold text-gray-600 uppercase mb-2">Level</p>
+                    <p className="text-lg text-gray-900 font-medium">{selectedCertificate.achievementLevel}</p>
+                  </div>
+
+                  <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-4">
+                    <p className="text-xs font-semibold text-gray-600 uppercase mb-2">Event Date</p>
+                    <p className="text-lg text-gray-900 font-medium">
+                      {new Date(selectedCertificate.eventDate).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  </div>
+
+                  
+                </div>
+
+                {/* Organizing Body */}
+                <div className="bg-orange-50 border-2 border-orange-200 rounded-lg p-4">
+                  <p className="text-xs font-semibold text-orange-600 uppercase mb-2">Organizing Body</p>
+                  <p className="text-lg text-gray-900 font-medium">{selectedCertificate.organizingBody || 'N/A'}</p>
+                </div>
+
+                {/* Skills */}
+                {(selectedCertificate.technicalSkills?.length > 0 || selectedCertificate.softSkills?.length > 0) && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-600 uppercase mb-3">Skills Demonstrated</p>
+                    <div className="space-y-3">
+                      {selectedCertificate.technicalSkills?.length > 0 && (
+                        <div>
+                          <p className="text-xs text-gray-600 font-medium mb-2">Technical Skills</p>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedCertificate.technicalSkills.map(skill => (
+                              <span key={skill} className="bg-orange-100 text-orange-700 text-sm px-3 py-1 rounded-full font-medium">
+                                {skill}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {selectedCertificate.softSkills?.length > 0 && (
+                        <div>
+                          <p className="text-xs text-gray-600 font-medium mb-2">Soft Skills</p>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedCertificate.softSkills.map(skill => (
+                              <span key={skill} className="bg-gray-100 text-gray-700 text-sm px-3 py-1 rounded-full font-medium">
+                                {skill}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Certificate Info */}
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                  <p className="text-xs font-semibold text-blue-600 uppercase mb-3">Certificate Information</p>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600 font-light">ID:</span>
+                      <span className="font-mono text-gray-900 font-medium">{selectedCertificate.id.slice(0, 12)}...</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600 font-light">Status:</span>
+                      <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-semibold text-xs">
+                        ✓ Verified
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Close Button */}
+                <button
+                  onClick={() => setCertificateDetailsOpen(false)}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-orange-600 to-orange-500 text-white font-semibold rounded-xl hover:from-orange-700 hover:to-orange-600 transition duration-300"
+                >
+                  Close Details
+                </button>
               </div>
             </div>
           </div>
