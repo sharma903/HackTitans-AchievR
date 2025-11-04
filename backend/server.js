@@ -5,6 +5,7 @@ const path = require('path');
 require('dotenv').config();
 
 const app = express();
+const certificateRoutes = require('./routes/certificates');
 
 // ===== 1. GLOBAL MIDDLEWARE (MUST BE FIRST) =====
 app.use(cors());
@@ -35,6 +36,7 @@ app.use('/api/activities', authMiddleware, require('./routes/activities'));
 app.use('/api/certificates', authMiddleware, require('./routes/certificates'));
 app.use('/api/recruiter', authMiddleware, require('./routes/recruiter'));
 
+app.use('/api/certificates', certificateRoutes);
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'OK' }));
 

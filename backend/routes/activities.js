@@ -1,3 +1,4 @@
+// routes/activities.js
 const express = require('express');
 const multer = require('multer');
 const Activity = require('../models/Activity');
@@ -5,7 +6,7 @@ const FraudDetection = require('../models/FraudDetection');
 const StudentSkills = require('../models/StudentSkills');
 const User = require('../models/User');
 const { detectCertificateFraud } = require('../utils/aiService');
-const { sendActivityApprovedEmail } = require('../utils/emailService');
+const { sendActivityApprovedEmail, sendActivityRejectedEmail } = require('../utils/emailService');
 
 const router = express.Router();
 const storage = multer.memoryStorage();
@@ -28,7 +29,7 @@ router.post('/submit', upload.single('document'), async (req, res) => {
 
     const studentId = req.user.userId;
 
-    console.log('Creating activity...');
+    console.log('📝 Creating activity for student:', studentId);
 
     // Parse skill arrays from JSON strings
     const techSkills = JSON.parse(selectedTechnicalSkills || '[]');
@@ -36,7 +37,7 @@ router.post('/submit', upload.single('document'), async (req, res) => {
     const tools = JSON.parse(selectedTools || '[]');
 
     if (techSkills.length === 0 && softSkills.length === 0 && tools.length === 0) {
-      return res.status(400).json({ error: ' Please select at least one skill' });
+      return res.status(400).json({ error: 'Please select at least one skill' });
     }
 
     const activity = new Activity({
@@ -60,79 +61,93 @@ router.post('/submit', upload.single('document'), async (req, res) => {
     });
 
     await activity.save();
+    console.log('✅ Activity saved:', activity._id);
 
     // ===== AI FRAUD DETECTION (if document uploaded) =====
     if (req.file) {
-      console.log('🔍 Scanning document for fraud...');
-      const fraud = await detectCertificateFraud(req.file.buffer);
+      try {
+        console.log('🔍 Scanning document for fraud...');
+        const fraud = await detectCertificateFraud(req.file.buffer);
 
-      const fraudDetection = new FraudDetection({
-        activity: activity._id,
-        fraudScore: fraud.fraudScore,
-        verdict: fraud.verdict,
-        concerns: fraud.concerns,
-        recommendation: fraud.recommendation,
-        confidenceLevel: fraud.confidence
-      });
+        const fraudDetection = new FraudDetection({
+          activity: activity._id,
+          fraudScore: fraud.fraudScore,
+          verdict: fraud.verdict,
+          concerns: fraud.concerns,
+          recommendation: fraud.recommendation,
+          confidenceLevel: fraud.confidence
+        });
 
-      await fraudDetection.save();
-      activity.fraudDetectionId = fraudDetection._id;
-      activity.fraudStatus = fraud.recommendation;
+        await fraudDetection.save();
+        activity.fraudDetectionId = fraudDetection._id;
+        activity.fraudStatus = fraud.recommendation;
 
-      if (fraud.recommendation === 'auto_reject') {
-        activity.status = 'rejected';
-        activity.rejectionReason = `Fraud detected (Score: ${fraud.fraudScore}/100)`;
+        if (fraud.recommendation === 'auto_reject') {
+          activity.status = 'rejected';
+          activity.rejectionReason = `Fraud detected (Score: ${fraud.fraudScore}/100)`;
+          console.warn('⚠️ Activity auto-rejected due to fraud');
+        } else {
+          console.log('✅ Fraud check passed');
+        }
+
+        await activity.save();
+      } catch (fraudError) {
+        console.error('⚠️ Fraud detection error:', fraudError.message);
       }
     }
-
-    await activity.save();
 
     // ===== UPDATE STUDENT SKILLS PROFILE =====
-    console.log('📊 Updating skills...');
-    let studentSkills = await StudentSkills.findOne({ student: studentId });
-    if (!studentSkills) {
-      studentSkills = new StudentSkills({ student: studentId });
+    try {
+      console.log('📊 Updating student skills...');
+      let studentSkills = await StudentSkills.findOne({ student: studentId });
+      
+      if (!studentSkills) {
+        studentSkills = new StudentSkills({ student: studentId });
+      }
+
+      // Add technical skills
+      techSkills.forEach(skill => {
+        const existing = studentSkills.technicalSkills.find(s => s.name === skill);
+        if (existing) {
+          existing.frequency += 1;
+        } else {
+          studentSkills.technicalSkills.push({ name: skill, frequency: 1 });
+        }
+      });
+
+      // Add soft skills
+      softSkills.forEach(skill => {
+        const existing = studentSkills.softSkills.find(s => s.name === skill);
+        if (existing) {
+          existing.frequency += 1;
+        } else {
+          studentSkills.softSkills.push({ name: skill, frequency: 1 });
+        }
+      });
+
+      // Add tools
+      tools.forEach(tool => {
+        const existing = studentSkills.tools.find(t => t.name === tool);
+        if (existing) {
+          existing.frequency += 1;
+        } else {
+          studentSkills.tools.push({ name: tool, frequency: 1 });
+        }
+      });
+
+      // Calculate skill score
+      studentSkills.overallSkillScore = Math.min(100, (
+        studentSkills.technicalSkills.length * 10 +
+        studentSkills.softSkills.length * 8 +
+        studentSkills.tools.length * 6
+      ));
+      studentSkills.lastUpdated = new Date();
+
+      await studentSkills.save();
+      console.log('✅ Skills updated');
+    } catch (skillsError) {
+      console.error('⚠️ Skills update error:', skillsError.message);
     }
-
-    // Add technical skills
-    techSkills.forEach(skill => {
-      const existing = studentSkills.technicalSkills.find(s => s.name === skill);
-      if (existing) {
-        existing.frequency += 1;
-      } else {
-        studentSkills.technicalSkills.push({ name: skill, frequency: 1 });
-      }
-    });
-
-    // Add soft skills
-    softSkills.forEach(skill => {
-      const existing = studentSkills.softSkills.find(s => s.name === skill);
-      if (existing) {
-        existing.frequency += 1;
-      } else {
-        studentSkills.softSkills.push({ name: skill, frequency: 1 });
-      }
-    });
-
-    // Add tools
-    tools.forEach(tool => {
-      const existing = studentSkills.tools.find(t => t.name === tool);
-      if (existing) {
-        existing.frequency += 1;
-      } else {
-        studentSkills.tools.push({ name: tool, frequency: 1 });
-      }
-    });
-
-    // Calculate skill score
-    studentSkills.overallSkillScore = Math.min(100, (
-      studentSkills.technicalSkills.length * 10 +
-      studentSkills.softSkills.length * 8 +
-      studentSkills.tools.length * 6
-    ));
-    studentSkills.lastUpdated = new Date();
-
-    await studentSkills.save();
 
     res.json({
       success: true,
@@ -149,7 +164,7 @@ router.post('/submit', upload.single('document'), async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('❌ Submit activity error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -164,11 +179,12 @@ router.get('/my-activities', async (req, res) => {
 
     res.json({ success: true, activities });
   } catch (error) {
+    console.error('❌ Get my activities error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-
+// ===== FACULTY: GET PENDING ACTIVITIES =====
 router.get('/faculty/pending', async (req, res) => {
   try {
     const activities = await Activity.find({ status: 'pending' })
@@ -177,6 +193,7 @@ router.get('/faculty/pending', async (req, res) => {
 
     res.json({ success: true, activities });
   } catch (error) {
+    console.error('❌ Get pending activities error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -185,9 +202,24 @@ router.get('/faculty/pending', async (req, res) => {
 router.put('/:id/approve', async (req, res) => {
   try {
     const { comment } = req.body;
+    const activityId = req.params.id;
+
+    console.log('🔍 DEBUG: Approving activity:', activityId);
+    console.log('🔍 DEBUG: Comment:', comment);
+    console.log('🔍 DEBUG: User ID:', req.user?.userId);
+
+    if (!activityId) {
+      return res.status(400).json({ error: 'Activity ID is required' });
+    }
+
+    if (!comment || comment.trim() === '') {
+      return res.status(400).json({ error: 'Comment is required' });
+    }
+
+    console.log('📝 Finding and updating activity...');
 
     const activity = await Activity.findByIdAndUpdate(
-      req.params.id,
+      activityId,
       {
         status: 'approved',
         reviewedBy: req.user.userId,
@@ -195,47 +227,159 @@ router.put('/:id/approve', async (req, res) => {
         reviewedAt: new Date()
       },
       { new: true }
-    ).populate('student');
+    ).populate('student', 'name email rollNumber department');
 
-   
-    await sendActivityApprovedEmail(activity.student, activity);
+    console.log('🔍 DEBUG: Activity found:', !!activity);
 
-    res.json({ success: true, message: '✅ Activity approved!', activity });
+    if (!activity) {
+      return res.status(404).json({ error: 'Activity not found' });
+    }
+
+    console.log('🔍 DEBUG: Student data:', {
+      name: activity.student?.name,
+      email: activity.student?.email
+    });
+
+    if (!activity.student) {
+      return res.status(400).json({ error: 'Student data not found' });
+    }
+
+    if (!activity.student.email) {
+      return res.status(400).json({ error: 'Student email not found' });
+    }
+
+    // Send approval email
+    try {
+      console.log('📧 Sending approval email to:', activity.student.email);
+      
+      if (!process.env.SENDGRID_API_KEY) {
+        console.warn('⚠️ SENDGRID_API_KEY not configured');
+      } else {
+        await sendActivityApprovedEmail(activity.student, activity);
+        console.log('✅ Email sent successfully');
+      }
+    } catch (emailError) {
+      console.error('⚠️ Email error (activity still approved):', emailError.message);
+      // Don't fail the entire request - activity is already approved
+    }
+
+    res.json({
+      success: true,
+      message: '✅ Activity approved!',
+      activity: {
+        id: activity._id,
+        title: activity.title,
+        status: activity.status,
+        student: activity.student.name,
+        approvedAt: activity.reviewedAt
+      }
+    });
+
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('❌ APPROVE ERROR:', error.message);
+    console.error('Stack:', error.stack);
+    
+    res.status(500).json({
+      error: error.message,
+      type: error.name
+    });
   }
 });
 
-
+// ===== FACULTY: REJECT ACTIVITY =====
 router.put('/:id/reject', async (req, res) => {
   try {
     const { reason } = req.body;
+    const activityId = req.params.id;
+
+    console.log('🔍 DEBUG: Rejecting activity:', activityId);
+    console.log('🔍 DEBUG: Reason:', reason);
+
+    if (!activityId) {
+      return res.status(400).json({ error: 'Activity ID is required' });
+    }
+
+    if (!reason || reason.trim() === '') {
+      return res.status(400).json({ error: 'Rejection reason is required' });
+    }
 
     const activity = await Activity.findByIdAndUpdate(
-      req.params.id,
+      activityId,
       {
         status: 'rejected',
         rejectionReason: reason,
+        reviewedBy: req.user.userId,
         reviewedAt: new Date()
       },
       { new: true }
-    );
+    ).populate('student', 'name email rollNumber');
 
-    res.json({ success: true, message: '❌ Activity rejected', activity });
+    console.log('🔍 DEBUG: Activity found:', !!activity);
+
+    if (!activity) {
+      return res.status(404).json({ error: 'Activity not found' });
+    }
+
+    // Send rejection email
+    try {
+      console.log('📧 Sending rejection email to:', activity.student?.email);
+      
+      if (!process.env.SENDGRID_API_KEY) {
+        console.warn('⚠️ SENDGRID_API_KEY not configured');
+      } else {
+        await sendActivityRejectedEmail(activity.student, activity, reason);
+        console.log('✅ Rejection email sent');
+      }
+    } catch (emailError) {
+      console.error('⚠️ Rejection email error:', emailError.message);
+    }
+
+    res.json({
+      success: true,
+      message: '❌ Activity rejected',
+      activity: {
+        id: activity._id,
+        title: activity.title,
+        status: activity.status,
+        rejectionReason: activity.rejectionReason
+      }
+    });
+
   } catch (error) {
+    console.error('❌ REJECT ERROR:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
 
-
+// ===== ADMIN: GET APPROVED ACTIVITIES =====
 router.get('/admin/approved', async (req, res) => {
   try {
     const activities = await Activity.find({ status: 'approved' })
-      .populate('student', 'name rollNumber email')
+      .populate('student', 'name rollNumber email department')
+      .populate('reviewedBy', 'name')
       .sort({ reviewedAt: -1 });
 
     res.json({ success: true, activities });
   } catch (error) {
+    console.error('❌ Get approved activities error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ===== GET ACTIVITY DETAILS =====
+router.get('/:id', async (req, res) => {
+  try {
+    const activity = await Activity.findById(req.params.id)
+      .populate('student', 'name email rollNumber')
+      .populate('fraudDetectionId');
+
+    if (!activity) {
+      return res.status(404).json({ error: 'Activity not found' });
+    }
+
+    res.json({ success: true, activity });
+  } catch (error) {
+    console.error('❌ Get activity error:', error);
     res.status(500).json({ error: error.message });
   }
 });
