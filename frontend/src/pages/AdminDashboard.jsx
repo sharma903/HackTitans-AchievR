@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { 
-  Shield, Award, CheckCircle, FileCheck, Loader, Send, Eye, 
+import {
+  Shield, Award, CheckCircle, FileCheck, Loader, Send, Eye,
   Download, AlertCircle, TrendingUp, Mail, RefreshCw, Trash2, X,
   ChevronDown, Users, MailPlus
 } from 'lucide-react';
@@ -38,10 +38,10 @@ export default function AdminDashboard({ user }) {
         'http://localhost:5000/api/activities/admin/approved',
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
-      
+
       const activitiesList = response.data.activities || [];
-      console.log('📋 Activities fetched:', activitiesList.length);
-      
+      console.log('Activities fetched:', activitiesList.length);
+
       setActivities(activitiesList);
 
       const certified = activitiesList.filter(a => a.certificateId).length;
@@ -120,17 +120,17 @@ export default function AdminDashboard({ user }) {
           achievementLevel: certData.achievementLevel,
           eventDate: certData.eventDate
         },
-        { 
-          headers: { 
+        {
+          headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json'
-          } 
+          }
         }
       );
 
       console.log('✅ Success:', response.data);
       alert(`✅ Certificate emailed to ${certData.studentEmail}`);
-      
+
       setCertificateData(null);
       setSelectedActivity(null);
       fetchApprovedActivities();
@@ -167,7 +167,7 @@ export default function AdminDashboard({ user }) {
 
       console.log('✅ Result:', response.data);
       alert(`✅ Successfully sent ${response.data.successCount} certificates!\n❌ Failed: ${response.data.failCount}`);
-      
+
       setSelectedStudents([]);
       fetchApprovedActivities();
 
@@ -195,7 +195,7 @@ export default function AdminDashboard({ user }) {
   // ========== TOGGLE STUDENT SELECT ==========
   const handleToggleStudent = (studentId) => {
     if (!studentId) return; // Safety check
-    
+
     if (selectedStudents.includes(studentId)) {
       setSelectedStudents(selectedStudents.filter(id => id !== studentId));
     } else {
@@ -208,29 +208,29 @@ export default function AdminDashboard({ user }) {
     .filter(activity => {
       // ✅ FIX: NULL CHECKS
       if (!activity) return false;
-      
+
       const title = activity.title ? activity.title.toLowerCase() : '';
       const studentName = activity.student?.name ? activity.student.name.toLowerCase() : '';
-      
+
       const matchSearch = title.includes(searchTerm.toLowerCase()) ||
-                         studentName.includes(searchTerm.toLowerCase());
+        studentName.includes(searchTerm.toLowerCase());
       return matchSearch;
     })
     .sort((a, b) => {
       if (!a || !b) return 0;
-      
+
       if (sortBy === 'recent') {
         const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
         const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
         return dateB - dateA;
       }
-      
+
       if (sortBy === 'pending') {
         const aHasCert = !!a.certificateId;
         const bHasCert = !!b.certificateId;
         return aHasCert - bHasCert;
       }
-      
+
       return 0;
     });
 
@@ -250,43 +250,43 @@ export default function AdminDashboard({ user }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
       <div className="max-w-7xl mx-auto px-8 py-12">
-        
+
         {/* ========== HEADER ========== */}
         <div className="mb-12 flex items-center justify-between">
           <div>
-            <h1 className="text-5xl font-bold text-gray-900"> Admin Dashboard</h1>
+            <h1 className="text-3xl md:text-5xl font-light text-gray-900 mb-3"> Admin Dashboard</h1>
             <p className="text-gray-600 font-light mt-2">Manage & certify approved activities</p>
           </div>
           <button
             onClick={fetchApprovedActivities}
-            className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-200 rounded-lg hover:border-orange-400 transition font-bold"
+            className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-200 rounded-lg hover:border-orange-400 transition text-2xl font-light text-gray-900"
           >
-            <RefreshCw className="w-4 h-4" /> Refresh
+            <RefreshCw className="w-4 h-4 " /> Refresh
           </button>
         </div>
 
         {/* ========== STATISTICS ========== */}
         <div className="grid grid-cols-4 gap-4 mb-8">
-          <StatCard 
-            label="Total Activities" 
+          <StatCard
+            label="Total Activities"
             value={stats.total}
             icon={<FileCheck className="w-6 h-6" />}
             color="from-blue-500 to-blue-600"
           />
-          <StatCard 
-            label="Pending" 
+          <StatCard
+            label="Pending"
             value={stats.pending}
             icon={<AlertCircle className="w-6 h-6" />}
             color="from-yellow-500 to-yellow-600"
           />
-          <StatCard 
-            label="Certified" 
+          <StatCard
+            label="Certified"
             value={stats.certified}
             icon={<CheckCircle className="w-6 h-6" />}
             color="from-green-500 to-green-600"
           />
-          <StatCard 
-            label="Rate" 
+          <StatCard
+            label="Rate"
             value={`${stats.rate}%`}
             icon={<TrendingUp className="w-6 h-6" />}
             color="from-purple-500 to-purple-600"
@@ -369,10 +369,10 @@ export default function AdminDashboard({ user }) {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-orange-400 focus:outline-none font-bold cursor-pointer bg-white"
+            className="px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-orange-400 focus:outline-none text-2xl font-light text-gray-900 cursor-pointer bg-white"
           >
-            <option value="recent">📅 Most Recent</option>
-            <option value="pending">⏳ Pending First</option>
+            <option value="recent">Most Recent</option>
+            <option value="pending">Pending First</option>
           </select>
         </div>
 
@@ -382,7 +382,7 @@ export default function AdminDashboard({ user }) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <FileCheck className="w-6 h-6 text-orange-600" />
-                <h2 className="text-2xl font-bold text-gray-900">Approved Activities</h2>
+                <h2 className="text-2xl font-light text-gray-900">Approved Activities</h2>
                 <span className="px-3 py-1 bg-orange-100 text-orange-700 text-sm font-bold rounded-full">
                   {filteredActivities.length}
                 </span>
@@ -423,23 +423,22 @@ export default function AdminDashboard({ user }) {
                   </tr>
                 ) : (
                   filteredActivities.map((activity, index) => {
-                    // ✅ FIX: NULL CHECKS BEFORE ACCESSING
+                    // FIX: NULL CHECKS BEFORE ACCESSING
                     if (!activity || !activity.student) {
                       return (
                         <tr key={index} className="border-b border-gray-200 bg-red-50">
                           <td colSpan="7" className="p-4 text-center text-red-600 font-bold">
-                            ❌ Data Error - Student not found
+                            Data Error - Student not found
                           </td>
                         </tr>
                       );
                     }
 
                     return (
-                      <tr 
-                        key={activity._id || index} 
-                        className={`border-b border-gray-200 hover:bg-orange-50 transition ${
-                          index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                        }`}
+                      <tr
+                        key={activity._id || index}
+                        className={`border-b border-gray-200 hover:bg-orange-50 transition ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                          }`}
                       >
                         <td className="p-4">
                           <input
@@ -467,12 +466,11 @@ export default function AdminDashboard({ user }) {
                           </span>
                         </td>
                         <td className="p-4">
-                          <span className={`px-3 py-1 text-xs font-bold rounded-full ${
-                            activity.certificateId 
+                          <span className={`px-3 py-1 text-xs font-bold rounded-full ${activity.certificateId
                               ? 'bg-green-100 text-green-700'
                               : 'bg-yellow-100 text-yellow-700'
-                          }`}>
-                            {activity.certificateId ? '✅ Certified' : '⏳ Pending'}
+                            }`}>
+                            {activity.certificateId ? 'Certified' : 'Pending'}
                           </span>
                         </td>
                         <td className="p-4">
@@ -488,12 +486,12 @@ export default function AdminDashboard({ user }) {
                               </>
                             ) : activity.certificateId ? (
                               <>
-                                <CheckCircle className="w-3 h-3" />
+                                
                                 Done
                               </>
                             ) : (
                               <>
-                                <Award className="w-3 h-3" />
+                                
                                 Generate
                               </>
                             )}
@@ -507,24 +505,6 @@ export default function AdminDashboard({ user }) {
             </table>
           </div>
         </div>
-
-        {/* ========== INFO SECTION ========== */}
-        {filteredActivities.length > 0 && (
-          <div className="mt-8 p-6 bg-gradient-to-br from-orange-50 to-white border-2 border-orange-200 rounded-xl">
-            <div className="flex items-start gap-3">
-              <Shield className="w-5 h-5 text-orange-600 mt-1 flex-shrink-0" />
-              <div>
-                <p className="text-sm font-bold text-gray-900 mb-3">📜 How to Generate & Mail Certificates</p>
-                <ul className="text-xs text-gray-600 space-y-2">
-                  <li>✅ <strong>Single:</strong> Click "Generate" button for each student</li>
-                  <li>📧 <strong>Bulk:</strong> Select multiple students, click "Send to All"</li>
-                  <li>🔐 <strong>Security:</strong> Each certificate has unique verification code</li>
-                  <li>✓ <strong>Resend:</strong> You can resend certificates anytime</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

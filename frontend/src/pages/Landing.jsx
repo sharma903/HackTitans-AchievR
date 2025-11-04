@@ -97,7 +97,7 @@ export default function PremiumAchievRLanding({ user, setUser }) {
       </nav>
 
       {/* Hero - White Background */}
-      <section className="pt-32 pb-24 px-8 relative overflow-hidden bg-white">
+      <section className="pt-24 pb-24 px-8 relative overflow-hidden bg-white">
         <div
           className="absolute top-20 right-0 w-96 h-96 bg-gradient-to-br from-orange-100 to-transparent rounded-full blur-3xl opacity-40 animate-pulse"
           style={{
@@ -119,7 +119,7 @@ export default function PremiumAchievRLanding({ user, setUser }) {
 
             {/* Left - Text Content - 2/3 Width */}
             <div className="col-span-2 pr-0 mt-10">
-              <h2 className="text-7xl font-normal leading-[1.1] mb-4 animate-fadeInUp text-left" style={{ animationDelay: '0.1s' }}>
+              <h2 className="text-7xl font-normal leading-[1.1] mb-0 animate-fadeInUp text-left" style={{ animationDelay: '0.1s' }}>
                 <span className="block">Transform Student </span>
                 <span className="block">Achievement into</span>
 
@@ -139,10 +139,7 @@ export default function PremiumAchievRLanding({ user, setUser }) {
 
           {/* Bottom Section: Description & Button */}
           <div className="flex flex-col gap-6 items-center mb-8 animate-fadeInUp" style={{ animationDelay: '0.3s' }}>
-            <p className="text-lg text-gray-600 font-normal leading-relaxed">
-              India's first AI-powered student portfolio platform. Detect fake certificates in 2 seconds. Build verified skill profiles.
-              <span className="block">Get discovered by top recruiters. Blockchain-certified. Built for institutions that demand authenticity.</span>
-            </p>
+            
             <button 
               onClick={() => navigate(user ? (user.role === 'student' ? '/dashboard' : `/${user.role}`) : '/register')}
               className="group inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-orange-600 to-orange-500 text-white hover:from-orange-700 hover:to-orange-600 transition duration-300 shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 hover:scale-105"
@@ -150,6 +147,10 @@ export default function PremiumAchievRLanding({ user, setUser }) {
               <span className="font-medium text-sm">{user ? 'Go to Dashboard' : 'Try Now'}</span>
               <ArrowRight size={16} className="group-hover:translate-x-1 transition" />
             </button>
+            <p className="text-lg text-gray-600 font-normal leading-relaxed">
+              India's first AI-powered student portfolio platform. Detect fake certificates in 2 seconds. Build verified skill profiles.
+              <span className="block">Get discovered by top recruiters. Blockchain-certified. Built for institutions that demand authenticity.</span>
+            </p>
           </div>
 
         </div>

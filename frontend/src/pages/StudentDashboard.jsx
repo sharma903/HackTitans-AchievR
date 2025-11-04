@@ -251,9 +251,7 @@ export default function StudentDashboard({ user }) {
                 <h3 className="text-2xl font-bold text-gray-900">Activities by Category</h3>
                 <p className="text-sm text-gray-600 font-medium mt-1">Distribution across different achievement types</p>
               </div>
-              <div className="bg-orange-100 p-3 rounded-xl">
-                <TrendingUp size={24} className="text-orange-600" />
-              </div>
+              
             </div>
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={320}>
